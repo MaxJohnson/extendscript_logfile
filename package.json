@@ -1,6 +1,6 @@
 {
   "name": "extendscript_logfile",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A basic logging file Class for Adobe ExtendScript with UMD wrapper for cross-compatability with AMD and node.js require.",
   "main": "./dist/extendscript_logfile.jsxinc",
   "scripts": {

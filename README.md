@@ -44,13 +44,16 @@ var myLogFile = new ExtendScript_LogFile();
 myLogFile.log('Hey there.');
 ```
 ### Constructor options
-"new" constructor takes 4 optional arguments.
+"new" constructor takes 3 optional arguments.
+```new ExtendScript_LogFile (root, logType, logDir)```
+
 First argument is an alternate root object to tack on a 'logFile' alias
 By passing $.global as first arg, we get global log and console objects!
 
 ```
 root = $.global;// root to add convenience aliases to
 logType = "special";// name other than "default"
+logDir = '~/Desktop/'
 
 myExplicitLogFileVariable = new ExtendScript_LogFile(root, logType);
 
@@ -68,6 +71,19 @@ specialLog.log('Salutations.');
 // prints to:
 // ./logs/2019-03-15_092803-default.log >>Fri Mar 15 2019 09:28:05 GMT-0700: Hey there.
 // ./logs/2019-03-15_092804-special.log >>Fri Mar 15 2019 09:28:09 GMT-0700: Salutations.
+```
+
+The third argument specifies a non-"default" directory path to save the log to
+```
+root = $.global;// root to add convenience aliases to
+logType = "special";// name other than "default"
+logDir = '~/Desktop/logging/'
+
+var myLogFile = new ExtendScript_LogFile(root, logType, logDir);
+myLogFile.log('Salutations.');
+
+// prints to:
+// ~/Desktop/logging/2019-03-15_092804-special.log >>Fri Mar 15 2019 09:28:09 GMT-0700: Salutations.
 ```
 
 ## Use the log file

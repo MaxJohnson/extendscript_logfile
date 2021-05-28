@@ -44,50 +44,73 @@ var myLogFile = new ExtendScript_LogFile();
 myLogFile.log('Hey there.');
 ```
 ### Constructor options
-"new" constructor takes 3 optional arguments.
-```new ExtendScript_LogFile (root, logType, logDir)```
+"new" constructor takes 4 optional arguments.
 
-First argument is an alternate root object to tack on a 'logFile' alias
+```new ExtendScript_LogFile (root, logType, logDir, useDate)```
+
+#### Argument 1 : root
+is an alternate root object to tack on a 'logFile' alias
 By passing $.global as first arg, we get global log and console objects!
 
 ```
 root = $.global;// root to add convenience aliases to
-logType = "special";// name other than "default"
-logDir = '~/Desktop/'
 
-myExplicitLogFileVariable = new ExtendScript_LogFile(root, logType);
-
-logFile.log('Like magic.');
+var myExplicitLogFileVariable = new ExtendScript_LogFile(root);
+myExplicitLogFileVariable.log('So explicit!');// call from a var
+logFile.log('Like magic.');// uses the $.global.logFile we made
 ```
 
-The second argument specifies a non-"default" *type* and makes a file name
+#### Argument 2 : logType
+ specifies a non-"default" *type* and makes a file name
 ```
 var myLogFile = new ExtendScript_LogFile();
 myLogFile.log('Hey there.');
 
 var specialLogFile = new ExtendScript_LogFile(null,"special");
-specialLog.log('Salutations.');
+specialLogFile.log('Salutations.');
 
 // prints to:
-// ./logs/2019-03-15_092803-default.log >>Fri Mar 15 2019 09:28:05 GMT-0700: Hey there.
-// ./logs/2019-03-15_092804-special.log >>Fri Mar 15 2019 09:28:09 GMT-0700: Salutations.
+// ./logs/default_2021-05-28T16-15-37.611.log >>[2021-05-28T16:15:37.612] default : Hey there.
+// ./logs/special_2021-05-28T16-15-37.656.log >>[2021-05-28T16:15:37.657] special : Salutations.
 ```
 
-The third argument specifies a non-"default" directory path to save the log to
+#### Argument 3 : logDir (default: './logs/')
+a non-"default" directory path to save the log to
 ```
 root = $.global;// root to add convenience aliases to
 logType = "special";// name other than "default"
-logDir = '~/Desktop/logging/'
+logDir = '~/Desktop/mylogcabin/';// custom log directory
 
 var myLogFile = new ExtendScript_LogFile(root, logType, logDir);
 myLogFile.log('Salutations.');
 
 // prints to:
-// ~/Desktop/logging/2019-03-15_092804-special.log >>Fri Mar 15 2019 09:28:09 GMT-0700: Salutations.
+// ~/Desktop/mylogcabin/special_2021-05-28T16-15-37.656.log >>[2021-05-28T16:15:37.657] special : Salutations.
+```
+
+#### Argument 3 : useDate (default: true)
+specifies if the date should be prepended to the log entries
+can be changed with `.useDate(false)`
+```
+root = $.global;// root to add convenience aliases to
+logType = "special";// name other than "default"
+logDir = '~/Desktop/mylogcabin/';// custom log directory
+useDate = false;
+
+var myLogFile = new ExtendScript_LogFile(root, logType, logDir, useDate);
+
+myLogFile.log('Salutations.');
+
+// prints to:
+// ~/Desktop/mylogcabin/special_2021-05-28T16-15-37.656.log >> special : Salutations.
 ```
 
 ## Use the log file
 `.log()` and `.writeln()` do the same thing...
+
+`.useDate(false)` will disable the date printing in each entry
+
+### Attatch to namespace or other log object
 ```
 myLogFile = new ExtendScript_Log($.global);
 logFile.log('Messages are good.');

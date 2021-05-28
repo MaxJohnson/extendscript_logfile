@@ -70,49 +70,73 @@ var myLogFile = new ExtendScript_LogFile();
 myLogFile.log('Hey there.');
 ```
 ### Constructor options
-"new" constructor takes 3 optional arguments.
-```new ExtendScript_LogFile (root, logType, logDir)```
-First argument is an alternate root object to tack on a 'logFile' alias
+"new" constructor takes 4 optional arguments.
+
+```new ExtendScript_LogFile (root, logType, logDir, useDate)```
+
+#### Argument 1 : root
+is an alternate root object to tack on a 'logFile' alias
 By passing $.global as first arg, we get global log and console objects!
 
 ```
 root = $.global;// root to add convenience aliases to
-logType = "special";// name other than "default"
-logDir = '~/Desktop/'
 
-myExplicitLogFileVariable = new ExtendScript_LogFile(root, logType);
-
-logFile.log('Like magic.');
+var myExplicitLogFileVariable = new ExtendScript_LogFile(root);
+myExplicitLogFileVariable.log('So explicit!');// call from a var
+logFile.log('Like magic.');// uses the $.global.logFile we made
 ```
 
-The second argument specifies a non-"default" *type* and makes a file name
+#### Argument 2 : logType
+ specifies a non-"default" *type* and makes a file name
 ```
 var myLogFile = new ExtendScript_LogFile();
 myLogFile.log('Hey there.');
 
 var specialLogFile = new ExtendScript_LogFile(null,"special");
-specialLog.log('Salutations.');
+specialLogFile.log('Salutations.');
 
 // prints to:
-// ./logs/2019-03-15_092803-default.log >>Fri Mar 15 2019 09:28:05 GMT-0700: Hey there.
-// ./logs/2019-03-15_092804-special.log >>Fri Mar 15 2019 09:28:09 GMT-0700: Salutations.
+// ./logs/default_2021-05-28T16-15-37.611.log >>[2021-05-28T16:15:37.612] default : Hey there.
+// ./logs/special_2021-05-28T16-15-37.656.log >>[2021-05-28T16:15:37.657] special : Salutations.
 ```
 
-The third argument specifies a non-"default" directory path to save the log to
+#### Argument 3 : logDir (default: './logs/')
+a non-"default" directory path to save the log to
 ```
 root = $.global;// root to add convenience aliases to
 logType = "special";// name other than "default"
-logDir = '~/Desktop/logging/'
+logDir = '~/Desktop/mylogcabin/';// custom log directory
 
 var myLogFile = new ExtendScript_LogFile(root, logType, logDir);
 myLogFile.log('Salutations.');
 
 // prints to:
-// ~/Desktop/logging/2019-03-15_092804-special.log >>Fri Mar 15 2019 09:28:09 GMT-0700: Salutations.
+// ~/Desktop/mylogcabin/special_2021-05-28T16-15-37.656.log >>[2021-05-28T16:15:37.657] special : Salutations.
+```
+
+#### Argument 3 : useDate (default: true)
+specifies if the date should be prepended to the log entries
+can be changed with `.useDate(false)`
+```
+root = $.global;// root to add convenience aliases to
+logType = "special";// name other than "default"
+logDir = '~/Desktop/mylogcabin/';// custom log directory
+useDate = false;
+
+var myLogFile = new ExtendScript_LogFile(root, logType, logDir, useDate);
+
+myLogFile.log('Salutations.');
+
+// prints to:
+// ~/Desktop/mylogcabin/special_2021-05-28T16-15-37.656.log >> special : Salutations.
 ```
 
 ## Use the log file
 `.log()` and `.writeln()` do the same thing...
+
+`.useDate(false)` will disable the date printing in each entry
+
+### Attatch to namespace or other log object
 ```
 myLogFile = new ExtendScript_Log($.global);
 logFile.log('Messages are good.');
@@ -178,12 +202,14 @@ Like peanutbutter and chocolate...
     // (root is global... so should be $.global for ExtendScript)
     root.ExtendScript_LogFile = factory;
   }
-}($.global, function (root, logType, logDir) {// IIFE straight into the UMD, attaching to the $.global space
+}($.global, function (root, logType, logDir, useDate) {// IIFE straight into the UMD, attaching to the $.global space
 
     $.strict = true;
     $.writeln("Loading extendscript LogFile...");
 
     var LogFile = { };
+    var _logDir = logDir;
+    var _useDate = (useDate !== false);
 
 //helper functions
 
@@ -194,7 +220,7 @@ Like peanutbutter and chocolate...
             logFileDir.create();
         }
 
-        var logFileName = _getISODate() + "-" + typeString + ".log";
+        var logFileName = typeString + "_" + _getDateString().replace(/[:]/g,'-')+ ".log";
         var logFilePath = _getDirString() + logFileName;
         return new File(logFilePath);
     }
@@ -212,7 +238,7 @@ Like peanutbutter and chocolate...
             for (f = 0; f < logFiles.length; f++) {
                 var myFile = logFiles[f];
                 var fileTime = myFile.created.getTime();
-                var nameSearch = myFile.name.search(typeString + ".log");
+                var nameSearch = myFile.name.search(typeString + "_");
                 if ( ( fileTime < removeTime || keepLatest == false ) && nameSearch > -1) {
 
                     myFile.remove();
@@ -229,9 +255,9 @@ Like peanutbutter and chocolate...
     // Get script dir or fallback to desktop temp folder
     function _getDirString() {
         var dirPath;
-        if (logDir) {
+        if (_logDir) {
             // user defined
-            dirPath = logDir;
+            dirPath = _logDir;
         } else if (File($.fileName).exists) {
             // same directory as script
             dirPath = File($.fileName).path + "/logs/";
@@ -242,8 +268,8 @@ Like peanutbutter and chocolate...
         return dirPath; 
     }
 
-    // Overly complex ISO date string constructor
-    function _getISODate() {
+    // Overly complex UTC-like date string constructor polyfill
+    function _getDateString() {
         var myDate = new Date();
         // forward compatability with ES5 Shims
         if (typeof myDate.getFullYear !== "function") {
@@ -259,7 +285,13 @@ Like peanutbutter and chocolate...
         var myMinutes = _zeroPad(myDate.getMinutes(), 2);
         var mySeconds = _zeroPad(myDate.getSeconds(), 2);
 
-        return myYear + "-" + myMonth + "-" + myDay + "_" + myHours + myMinutes + mySeconds;
+        return myYear + 
+        "-" + myMonth + 
+        "-" + myDay + 
+        "T" + myHours + 
+        ':' + myMinutes + 
+        ':' + mySeconds +
+        '.' + (myDate.getMilliseconds() / 1000).toFixed(3).slice(2, 5);
     }
 
     // Pad those number strings kid. Pad em good.
@@ -287,17 +319,20 @@ Like peanutbutter and chocolate...
         return LogFile;
     };
 
-    //primary method
+    //write to file, date added by default
     LogFile.writeln = LogFile.log = function (logMessage) {
         LogFile.file.open("a+");
-        LogFile.file.writeln(new Date() + ": " + logMessage);
+        if(_useDate) {
+            logMessage = '[' + _getDateString() + "] " + logMessage;
+        }
+        LogFile.file.writeln(logMessage);
         LogFile.file.close();
 
         return LogFile;
     };
 
     //cleanup
-    LogFile.clear = LogFile.log = function (logMessage) {
+    LogFile.clear = function () {
         LogFile.file.open("w");
         LogFile.file.close();
 
@@ -322,6 +357,20 @@ Like peanutbutter and chocolate...
     // remove all similar files
     LogFile.removeAll = function () {
         _removeLogFiles(false);
+        return LogFile;
+    };
+
+    // change log file directory
+    LogFile.setDirectory = function (newDir) {
+        _logDir = newDir;
+        LogFile.init(LogFile.type);
+        return LogFile;
+    };
+
+    // change log file directory
+    LogFile.useDate = function (useDate) {
+        _useDate = (useDate !== false);//only false if explicitly stated
+        LogFile.init(LogFile.type);
         return LogFile;
     };
 
